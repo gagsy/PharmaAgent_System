@@ -10,18 +10,30 @@ class Orchestrator:
 
     def process_order(self, image_path, target_id):
         try:
-            # 1. Logic execution (Must be indented 8 spaces from left)
-            # You can add your actual agent logic here later
-            
-            # 2. Return payload (Matches the keys main.py is looking for)
-            return {
-                "status": "SAFE", 
-                "msg": "Identity Verified: Atorvastatin 10mg. Dosage cross-referenced successfully.",
-                "file": "data/logs/audit_trail.csv"
+            # STEP 1: AI Vision Analysis
+            # Actually use the agent to detect the pill in the image
+            vision_result = self.vision.analyze_pill(image_path)
+            detected_pill = vision_result.get("detected_pill_id")
+
+            # STEP 2: Safety Cross-Reference
+            # Compare what the camera sees vs. what the user selected
+            if detected_pill != target_id:
+                msg = f"MISMATCH DETECTED: Camera saw {detected_pill}, but you selected {target_id}."
+                status = "DANGER"
+            else:
+                msg = f"SUCCESS: Identity Verified for {target_id}."
+                status = "SAFE"
+
+            # STEP 3: Immutable Logging
+            final_report = {
+                "status": status,
+                "msg": msg,
+                "pill_id": target_id,
+                "timestamp": "2026-02-09"
             }
+            self.auditor.log_transaction(final_report)
+
+            return final_report
+
         except Exception as e:
-            # 3. Error handling indented inside the except block
-            return {
-                "status": "ERROR", 
-                "msg": f"AI Verification Failed: {str(e)}"
-            }
+            return {"status": "ERROR", "msg": f"System Failure: {str(e)}"}
