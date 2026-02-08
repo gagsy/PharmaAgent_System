@@ -1,0 +1,30 @@
+# Local Virtual Environments
+venv/
+env/
+.env
+
+# Version Control
+.git
+.gitignore
+
+# IDE and Editor Files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Python Cache and Logs
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+**/*.pyd
+*.log
+
+# Project Specific Temp Files
+temp_scan.jpg
+data/logs/*.csv
+
+# Docker Specific
+Dockerfile
+docker-compose.yml
+.dockerignore

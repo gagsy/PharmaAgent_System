@@ -1,0 +1,11 @@
+version: '3.8'
+services:
+  pharma-app:
+    build: .
+    ports:
+      - "8501:8501"
+    volumes:
+      - .:/app
+    environment:
+      - PYTHONPATH=/app/src:/app
+      - WATCH_FILES=true
