@@ -1,6 +1,6 @@
-from src.agents.vision_agent import VisionAgent
-from src.agents.pharma_agent import PharmaAgent
-from src.agents.auditor_agent import AuditorAgent
+from agents.vision_agent import VisionAgent
+from agents.pharma_agent import PharmaAgent
+from agents.auditor_agent import AuditorAgent
 
 class Orchestrator:
     def __init__(self):
@@ -10,23 +10,18 @@ class Orchestrator:
 
     def process_order(self, image_path, target_id):
         try:
-            # 1. RUN VISION AGENT
-            vision_result = self.vision.analyze_pill(image_path)
-            detected_id = vision_result.get("detected_pill_id")
-
-            # 2. RUN SAFETY CHECK
+            # 1. Execute AI Vision
+            vision_data = self.vision.analyze_pill(image_path)
+            detected_id = vision_data.get("detected_pill_id")
+            
+            # 2. Safety Logic
             if detected_id == target_id:
-                status = "SAFE"
-                msg = f"Identity Verified: {target_id} matches the scanned medication."
+                res = {"status": "SAFE", "msg": f"Verified: {target_id} matches."}
             else:
-                status = "DANGER"
-                msg = f"MISMATCH: Scanned {detected_id} does not match prescribed {target_id}."
-
-            # 3. LOG TO AUDIT TRAIL
-            report = {"status": status, "msg": msg, "pill": target_id}
-            self.auditor.log_transaction(report)
-
-            return report
-
+                res = {"status": "DANGER", "msg": f"Mismatch: Found {detected_id}."}
+            
+            # 3. Audit Logging
+            self.auditor.log_transaction(res)
+            return res
         except Exception as e:
-            return {"status": "ERROR", "msg": f"System Failure: {str(e)}"}
+            return {"status": "ERROR", "msg": f"Failed: {str(e)}"}
