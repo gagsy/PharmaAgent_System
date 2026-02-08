@@ -10,6 +10,36 @@ import time
 sys.path.append(os.path.join(os.getcwd(), 'src'))
 from src.brain.orchestrator import Orchestrator
 
+
+# --- PLACE THIS AFTER IMPORTS ---
+def apply_enterprise_theme():
+    st.markdown("""
+        <style>
+        /* This targets the sidebar container specifically */
+        [data-testid="stSidebar"] {
+            background-color: #0e1117;
+            border-right: 2px solid #30363d;
+        }
+
+        /* FORCE WHITE TEXT on sidebar headers (Fixes your dark text issue) */
+        [data-testid="stSidebar"] h1, [data-testid="stSidebar"] h2, [data-testid="stSidebar"] h3 {
+            color: #58a6ff !important; /* Professional Medical Blue */
+            font-weight: 700 !important;
+        }
+
+        /* FORCE WHITE TEXT on input labels (Selectbox, etc.) */
+        [data-testid="stSidebar"] label p {
+            color: #ffffff !important; 
+            font-size: 1rem !important;
+            font-weight: 600 !important;
+        }
+        </style>
+    """, unsafe_allow_html=True)
+
+# CALL THE FUNCTION IMMEDIATELY
+apply_enterprise_theme()
+
+
 # Standardize page config for medical compliance
 st.set_page_config(
     page_title="PharmaAgent | Global Clinical Systems",
@@ -62,17 +92,31 @@ med_data = load_med_data()
 brain = Orchestrator()
 
 # 5. SIDEBAR: KPI DASHBOARD (Critical for Valuation)
+# --- PLACE THIS WHERE YOUR OLD SIDEBAR CODE WAS ---
 with st.sidebar:
-    st.title("🛡️ System Health")
-    st.metric("Model Accuracy", "99.8%", "+0.2%")
-    st.metric("Audit Status", "Compliant", "HIPAA/SOC2")
+    st.title("🛡️ PharmaGuard") # Now automatically blue/white
+    st.divider() # Adds a clean visual break
+    
+    # KPIs in columns for better scanning
+    col1, col2 = st.columns(2)
+    with col1:
+        st.metric("Accuracy", "99.8%")
+    with col2:
+        st.metric("Audit", "Valid")
+    
     st.divider()
     
-    selected_name = st.selectbox("Verification Target", options=[v['name'] for v in med_data.values()])
-    target_id = next(k for k, v in med_data.items() if v['name'] == selected_name)
+    # The Selectbox label is now pure white and readable
+    selected_name = st.selectbox(
+        "Current Verification Task", 
+        options=[v['name'] for v in med_data.values()]
+    )
     
-    st.write(f"Logged in as: **{st.user.name}**")
-    if st.button("Logout", on_click=st.logout):
+    st.divider()
+    
+    # Standard medical logout positioning
+    st.write(f"👤 Operator: **{st.user.name}**")
+    if st.button("🚪 Secure Logout", use_container_width=True, on_click=st.logout):
         st.stop()
 
 # 6. MAIN WORKFLOW TABS
