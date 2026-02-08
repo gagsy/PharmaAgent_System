@@ -10,30 +10,23 @@ class Orchestrator:
 
     def process_order(self, image_path, target_id):
         try:
-            # STEP 1: AI Vision Analysis
-            # Actually use the agent to detect the pill in the image
+            # 1. RUN VISION AGENT
             vision_result = self.vision.analyze_pill(image_path)
-            detected_pill = vision_result.get("detected_pill_id")
+            detected_id = vision_result.get("detected_pill_id")
 
-            # STEP 2: Safety Cross-Reference
-            # Compare what the camera sees vs. what the user selected
-            if detected_pill != target_id:
-                msg = f"MISMATCH DETECTED: Camera saw {detected_pill}, but you selected {target_id}."
-                status = "DANGER"
-            else:
-                msg = f"SUCCESS: Identity Verified for {target_id}."
+            # 2. RUN SAFETY CHECK
+            if detected_id == target_id:
                 status = "SAFE"
+                msg = f"Identity Verified: {target_id} matches the scanned medication."
+            else:
+                status = "DANGER"
+                msg = f"MISMATCH: Scanned {detected_id} does not match prescribed {target_id}."
 
-            # STEP 3: Immutable Logging
-            final_report = {
-                "status": status,
-                "msg": msg,
-                "pill_id": target_id,
-                "timestamp": "2026-02-09"
-            }
-            self.auditor.log_transaction(final_report)
+            # 3. LOG TO AUDIT TRAIL
+            report = {"status": status, "msg": msg, "pill": target_id}
+            self.auditor.log_transaction(report)
 
-            return final_report
+            return report
 
         except Exception as e:
             return {"status": "ERROR", "msg": f"System Failure: {str(e)}"}
