@@ -1,4 +1,39 @@
 {
+  "drug_crocin_advance": {
+    "name": "Crocin Advance",
+    "dose": "500mg",
+    "warnings": "Fast-absorbing paracetamol; do not exceed 4000mg/day to avoid liver damage."
+  },
+  "drug_paracetamol_650": {
+    "name": "Paracetamol (Dolo/Crocin 650)",
+    "dose": "650mg",
+    "warnings": "Standard for high fever; leave at least 4-6 hours between doses."
+  },
+  "drug_combiflam": {
+    "name": "Combiflam",
+    "dose": "400mg Ibuprofen / 325mg Paracetamol",
+    "warnings": "Take with food to prevent stomach upset; avoid in patients with asthma or ulcers."
+  },
+  "drug_cetirizine": {
+    "name": "Cetirizine (Okacet)",
+    "dose": "10mg",
+    "warnings": "Commonly used for allergies; may cause mild drowsiness in some individuals."
+  },
+  "drug_gelusil": {
+    "name": "Gelusil",
+    "dose": "Tablet/Syrup",
+    "warnings": "Antacid for acidity and heartburn; take after meals or at bedtime."
+  },
+  "drug_digene": {
+    "name": "Digene",
+    "dose": "Tablet/Syrup",
+    "warnings": "Relieves gas and acidity; chew tablets thoroughly before swallowing."
+  },
+  "drug_vicks_action_500": {
+    "name": "Vicks Action 500",
+    "dose": "500mg (Combination)",
+    "warnings": "Used for cold relief; contains paracetamol; do not take with other cold/flu meds."
+  },
   "drug_atorvastatin": {"name": "Atorvastatin", "dose": "20mg", "warnings": "Avoid grapefruit juice; report muscle pain."},
   "drug_levothyroxine": {"name": "Levothyroxine", "dose": "50mcg", "warnings": "Take on empty stomach 30-60 mins before breakfast."},
   "drug_lisinopril": {"name": "Lisinopril", "dose": "10mg", "warnings": "May cause dry cough; monitor blood pressure."},
