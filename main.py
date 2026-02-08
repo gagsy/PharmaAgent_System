@@ -2,6 +2,10 @@ import streamlit as st
 import json
 import numpy as np
 import cv2
+import sys
+import os
+# Adds the 'src' directory to the Python search path
+sys.path.append(os.path.join(os.getcwd(), 'src'))
 from src.brain.orchestrator import Orchestrator
 
 # 1. PROFESSIONAL UI CONFIGURATION

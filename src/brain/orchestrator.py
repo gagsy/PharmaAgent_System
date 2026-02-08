@@ -1,6 +1,6 @@
-from agents.vision_agent import VisionAgent
-from agents.pharma_agent import PharmaAgent
-from agents.auditor_agent import AuditorAgent
+from src.agents.vision_agent import VisionAgent
+from src.agents.pharma_agent import PharmaAgent
+from src.agents.auditor_agent import AuditorAgent
 
 class Orchestrator:
     def __init__(self):
