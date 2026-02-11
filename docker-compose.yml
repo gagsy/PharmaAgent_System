@@ -1,11 +1,17 @@
-version: '3.8'
 services:
   pharma-app:
     build: .
     ports:
       - "8501:8501"
     volumes:
+      # 1. Mount the Root Directory: Fixes the "can't open file /app/scraper.py" error [cite: 78, 117]
       - .:/app
-    environment:
-      - PYTHONPATH=/app/src:/app
-      - WATCH_FILES=true
+      
+      # 2. Specific Data Persistence: Ensures images and logs stay on your D: drive
+      - ./data:/app/data
+      - ./models:/app/models
+      - ./dataset:/app/dataset
+      - ./src:/app/src
+    
+    # Keeps the app alive for the medical environment
+    restart: unless-stopped
