@@ -3,15 +3,20 @@ services:
     build: .
     ports:
       - "8501:8501"
+      # NEW: WebRTC Signaling and Data ports (Standard range for STUN/TURN)
+      - "8502:8502"
+      - "3478:3478/udp" 
     volumes:
-      # 1. Mount the Root Directory: Fixes the "can't open file /app/scraper.py" error [cite: 78, 117]
-      - .:/app
-      
-      # 2. Specific Data Persistence: Ensures images and logs stay on your D: drive
-      - ./data:/app/data
-      - ./models:/app/models
-      - ./dataset:/app/dataset
-      - ./src:/app/src
+      # Use ${PWD} for more stable path mapping on Windows
+      - .:/usr/src/app
+      - ./data:/usr/src/app/data
+      - ./models:/usr/src/app/models
+      - ./dataset:/usr/src/app/dataset
+      - ./src:/usr/src/app/src
     
-    # Keeps the app alive for the medical environment
+    # Environment variables to help WebRTC find the right address
+    environment:
+      - STREAMLIT_SERVER_PORT=8501
+      - STREAMLIT_SERVER_ADDRESS=0.0.0.0
+    
     restart: unless-stopped

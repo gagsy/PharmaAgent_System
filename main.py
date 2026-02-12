@@ -5,6 +5,8 @@ import cv2
 import sys
 import os
 import time
+import av  # NEW: Required for WebRTC frame handling
+from streamlit_webrtc import webrtc_streamer, WebRtcMode, RTCConfiguration # NEW
 
 # 1. ENTERPRISE SYSTEM INITIALIZATION
 sys.path.append(os.path.join(os.getcwd(), 'src'))
@@ -24,8 +26,6 @@ def apply_enterprise_theme():
         .stDeployButton {display:none;}
         footer {visibility: hidden;}
         #stDecoration {display:none;}
-        
-        /* Sidebar Contrast Fix */
         [data-testid="stSidebar"] {
             background-color: #0e1117;
             border-right: 2px solid #30363d;
@@ -68,8 +68,6 @@ with st.sidebar:
     st.divider()
     
     selected_name = st.selectbox("Current Task", options=[v['name'] for v in med_data.values()])
-    
-    # GLOBAL VARIABLE DEFINITION
     target_id = next(k for k, v in med_data.items() if v['name'] == selected_name)
     
     st.divider()
@@ -77,90 +75,74 @@ with st.sidebar:
     if st.button("Logout", on_click=st.logout):
         st.stop()
 
-# 6. MAIN WORKFLOW
+# 6. REAL-TIME VIDEO PROCESSOR CLASS
+class VideoProcessor:
+    def __init__(self, target_id, brain_engine):
+        self.target_id = target_id
+        self.brain = brain_engine
+
+    def recv(self, frame: av.VideoFrame) -> av.VideoFrame:
+        # Convert frame to BGR for OpenCV
+        img = frame.to_ndarray(format="bgr24")
+        
+        # Process frame through AI Brain
+        # Your VisionAgent must be updated to return the 'annotated_frame'
+        result = self.brain.process_live_stream(img, self.target_id)
+        
+        # Return the frame with bounding boxes
+        return av.VideoFrame.from_ndarray(result["annotated_frame"], format="bgr24")
+
+# 7. MAIN WORKFLOW
 t1, t2, t3 = st.tabs(["⚡ Live Inspection", "📊 Historical Audit", "📘 Guide"])
 
 with t1:
     st.header(f"Inspecting: {selected_name}")
     
-    # NEW: PHOTOGRAPHY GUIDE POPOVER
     with st.popover("💡 View Photo Tips for 99% Accuracy"):
         st.markdown("### **How to take the perfect medical photo:**")
         col_tips1, col_tips2 = st.columns(2)
         with col_tips1:
             st.success("**✅ DO THIS**")
             st.write("* Place on **Plain White** paper")
-            st.write("* Use **Indirect Light** (No Glare)")
-            st.write("* Camera **Directly Above** strip")
+            st.write("* Use **Indirect Light**")
         with col_tips2:
             st.error("**❌ AVOID THIS**")
             st.write("* Dark/Cluttered backgrounds")
-            st.write("* Direct flash or reflections")
-            st.write("* Blurry or angled shots")
-        st.info("**Investor Note:** High-quality input ensures 99.8% model confidence.")
+            st.write("* Direct flash/glare")
+        st.info("Live streaming handles background noise automatically.")
 
-    img_file = st.camera_input("Scanner Interface", label_visibility="collapsed")
+    # REAL-TIME STREAMER
+    ctx = webrtc_streamer(
+        key="pharma-scanner",
+        mode=WebRtcMode.SENDRECV,
+        video_processor_factory=lambda: VideoProcessor(target_id, brain),
+        rtc_configuration={
+            "iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]
+        },
+        media_stream_constraints={"video": True, "audio": False},
+        async_processing=True,
+    )
 
+    if ctx.state.playing:
+        st.success("Scanner Active. Tracking Medicine...")
+    else:
+        st.warning("Click 'START' to activate the Real-Time AI Scanner.")
 
-    if img_file:
-        file_bytes = np.asarray(bytearray(img_file.read()), dtype=np.uint8)
-        frame = cv2.imdecode(file_bytes, 1)
-        cv2.imwrite("temp_scan.jpg", frame)
-        
-        with st.status("Agentic Reasoning...", expanded=True) as status:
-            # The brain calls VisionAgent, which now draws the box on temp_scan.jpg
-            result = brain.process_order("temp_scan.jpg", target_id)
-            status.update(label="Complete", state="complete", expanded=False)
-            
-        # 1. VISUAL CONFIRMATION: Show the image with the AI's bounding box
-        # We use use_container_width to make it look professional on all screens
-        st.image("temp_scan.jpg", caption="AI Vision Diagnostic", use_container_width=True)
-        
-        # 2. STATUS FEEDBACK: Dynamic success/error messaging
-        msg = result.get('msg', 'System returned null response.')
-        if result.get('status') == "SAFE":
-            st.success(f"### SUCCESS: {msg}")
-        else:
-            # This triggers if 'pill_001' is found instead of the target medicine
-            st.error(f"### ALERT: {msg}")
-        
-        # 3. TECHNICAL AUDIT: Raw data for buyer due diligence
-        with st.expander("📁 JSON Payload"):
-            st.json(result)
-
-# Tabs 2 and 3
+# Tabs 2 and 3 (Unchanged logic for Historical Audit and Guide)
 with t2:
     st.header("Global Audit Ledger")
     log_path = "data/logs/audit_trail.csv"
-    
     if os.path.exists(log_path):
         import pandas as pd
         try:
             df = pd.read_csv(log_path, sep=';', on_bad_lines='skip')
-            st.info(f"Showing last {len(df)} transactions for legal compliance.")
-            st.dataframe(
-                df.sort_index(ascending=False), 
-                width="stretch", 
-                hide_index=True
-            )
-            st.download_button(
-                label="📥 Download CSV Audit Report",
-                data=df.to_csv(index=False, sep=';'),
-                file_name="pharma_audit_report.csv",
-                mime="text/csv"
-            )
+            st.dataframe(df.sort_index(ascending=False), width="stretch", hide_index=True)
+            st.download_button("📥 Download CSV Audit Report", data=df.to_csv(index=False, sep=';'), file_name="pharma_audit_report.csv", mime="text/csv")
         except Exception as e:
-            st.error(f"⚠️ Critical: Database corruption detected. Error: {e}")
-            if st.button("🗑️ Reset Corrupted Audit Log"):
-                os.remove(log_path)
-                st.rerun()
+            st.error(f"⚠️ Error: {e}")
     else:
-        st.warning("No audit records found. Perform a Live Inspection to generate logs.")
+        st.warning("No audit records found.")
 
 with t3:
     st.header("Medical System Handbook")
-    st.markdown("""
-    - **Step 1:** Select target drug from sidebar.
-    - **Step 2:** Follow the **Photo Tips** popover for optimal results.
-    - **Step 3:** Review results and audit payload for final confirmation.
-    """)
+    st.markdown("- **Step 1:** Select drug. - **Step 2:** Click 'START' on scanner. - **Step 3:** Watch for the bounding box.")

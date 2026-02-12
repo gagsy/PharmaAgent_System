@@ -1,28 +1,30 @@
-# Use the lightweight image you already have [cite: 10, 49]
+# Use a Python base image
 FROM python:3.9-slim
 
-# Keep your working OpenCV requirements for Trixie 
-RUN apt-get update && apt-get install -y \
+# 1. Install SYSTEM dependencies with the updated GL library
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    pkg-config \
+    libavformat-dev \
+    libavcodec-dev \
+    libavdevice-dev \
+    libavutil-dev \
+    libswscale-dev \
+    libswresample-dev \
+    libavfilter-dev \
+    ffmpeg \
     libgl1 \
-    libglx-mesa0 \
     libglib2.0-0 \
     && rm -rf /var/lib/apt/lists/*
 
-WORKDIR /app
+WORKDIR /usr/src/app
 
-# Install dependencies first for faster rebuilding [cite: 10, 39]
+# 2. Copy and install requirements
 COPY requirements.txt .
-# Ensure bing-image-downloader is in your requirements.txt or add it here [cite: 51]
-RUN pip install --no-cache-dir -r requirements.txt
-RUN pip install --no-cache-dir bing-image-downloader ultralytics
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
 
-# Copy all files (including scraper.py and inventory.json) 
+# 3. Copy the rest of your app
 COPY . .
 
-# Ensure the data and dataset directories exist inside the container [cite: 39, 53]
-RUN mkdir -p data/logs dataset/images/train dataset/labels/train
-
-EXPOSE 8501
-
-# Default command remains Streamlit to keep the app running [cite: 10, 52]
 CMD ["streamlit", "run", "main.py"]

@@ -1,6 +1,7 @@
-streamlit[auth]
-Authlib>=1.3.2,<=1.6.5
 ultralytics
+streamlit
+streamlit-webrtc
+av>=12.0.0
 opencv-python-headless
 pandas
 numpy
