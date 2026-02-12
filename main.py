@@ -5,8 +5,8 @@ import cv2
 import sys
 import os
 import time
-import av  # NEW: Required for WebRTC frame handling
-from streamlit_webrtc import webrtc_streamer, WebRtcMode, RTCConfiguration # NEW
+import av
+from streamlit_webrtc import webrtc_streamer, WebRtcMode
 
 # 1. ENTERPRISE SYSTEM INITIALIZATION
 sys.path.append(os.path.join(os.getcwd(), 'src'))
@@ -42,7 +42,7 @@ def apply_enterprise_theme():
 
 apply_enterprise_theme()
 
-# 3. AUTHENTICATION
+# 3. AUTHENTICATION (Keep existing logic)
 if not st.user.is_logged_in:
     st.title("🏥 PharmaAgent Secure Access")
     st.info("Please log in to proceed.")
@@ -82,14 +82,8 @@ class VideoProcessor:
         self.brain = brain_engine
 
     def recv(self, frame: av.VideoFrame) -> av.VideoFrame:
-        # Convert frame to BGR for OpenCV
         img = frame.to_ndarray(format="bgr24")
-        
-        # Process frame through AI Brain
-        # Your VisionAgent must be updated to return the 'annotated_frame'
         result = self.brain.process_live_stream(img, self.target_id)
-        
-        # Return the frame with bounding boxes
         return av.VideoFrame.from_ndarray(result["annotated_frame"], format="bgr24")
 
 # 7. MAIN WORKFLOW
@@ -111,13 +105,26 @@ with t1:
             st.write("* Direct flash/glare")
         st.info("Live streaming handles background noise automatically.")
 
-    # REAL-TIME STREAMER
+    # UPDATED REAL-TIME STREAMER WITH FREE TURN RELAY
     ctx = webrtc_streamer(
         key="pharma-scanner",
         mode=WebRtcMode.SENDRECV,
         video_processor_factory=lambda: VideoProcessor(target_id, brain),
+        # Fixes "Connection taking longer" error on cloud
         rtc_configuration={
-            "iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]
+            "iceServers": [
+                {"urls": ["stun:stun.l.google.com:19302"]}, # Standard Google STUN
+                {
+                    "urls": ["turn:staticauth.openrelay.metered.ca:80"], # Open Relay Project Port 80
+                    "username": "openrelayproject",
+                    "credential": "openrelayprojectsecret"
+                },
+                {
+                    "urls": ["turn:staticauth.openrelay.metered.ca:443"], # Open Relay Project Port 443
+                    "username": "openrelayproject",
+                    "credential": "openrelayprojectsecret"
+                }
+            ]
         },
         media_stream_constraints={"video": True, "audio": False},
         async_processing=True,
