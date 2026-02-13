@@ -7,7 +7,7 @@ class VisionAgent:
     def __init__(self, model_path="models/best.pt"):
         # Load the custom trained YOLO brain
         if not os.path.exists(model_path):
-            self.model = YOLO("yolov8n.pt")
+            self.model = YOLO('models/best.pt')
         else:
             self.model = YOLO(model_path)
         
