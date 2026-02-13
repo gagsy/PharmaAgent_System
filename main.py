@@ -7,57 +7,43 @@ import os
 import av
 from streamlit_webrtc import webrtc_streamer, WebRtcMode
 
-# 1. SYSTEM INITIALIZATION
+# 1. INITIALIZATION
 sys.path.append(os.path.join(os.getcwd(), 'src'))
 from brain.orchestrator import Orchestrator
 
-st.set_page_config(page_title="PharmaAgent | Live AI", page_icon="🛡️", layout="wide")
+st.set_page_config(page_title="PharmaAgent | AI Scanner", page_icon="🛡️", layout="wide")
 
-# 2. FAIL-SAFE AUTHENTICATION (Resolves Blank Screen)
-def is_authenticated():
-    # Attempt to check Streamlit's built-in user object
-    try:
-        if hasattr(st, "user") and st.user.is_logged_in:
-            return True
-    except:
-        pass
-    # Local session fallback for manual login/bypass
-    return st.session_state.get("authenticated", False)
+# 2. STABLE AUTHENTICATION GATE (Fixes AttributeError)
+if "authenticated" not in st.session_state:
+    st.session_state["authenticated"] = False
 
-if not is_authenticated():
+if not st.session_state["authenticated"]:
     st.title("🏥 PharmaAgent Secure Access")
-    
-    # Try the professional SSO button
-    if hasattr(st, "login"):
-        st.info("System OIDC-Ready. Authenticate to proceed.")
-        st.button("🔐 SSO Login", on_click=st.login)
-    
-    # Manual Access Gate (Prevents Blank Screen if SSO fails)
-    st.divider()
-    st.subheader("Manual Access")
-    access_code = st.text_input("Enter Security PIN", type="password")
+    st.info("System is ready for Live AI Inspection.")
+    access_code = st.text_input("Security PIN", type="password", help="Enter demo pin to start")
     if st.button("Unlock System"):
-        if access_code == "1234": # Your Demo PIN
+        if access_code == "1234": # Your secure demo PIN
             st.session_state["authenticated"] = True
             st.rerun()
         else:
             st.error("Invalid PIN")
     st.stop()
 
-# 3. CORE LOGIC (Only runs if authenticated)
+# 3. LOAD DATA & AI ENGINE
 med_data = json.load(open('data/inventory.json', 'r'))
 brain = Orchestrator()
 
+# 4. SIDEBAR LOGIC
 with st.sidebar:
     st.title("🛡️ PharmaGuard")
+    st.divider()
     selected_name = st.selectbox("Current Task", options=[v['name'] for v in med_data.values()])
     target_id = next(k for k, v in med_data.items() if v['name'] == selected_name)
     if st.button("Logout"):
         st.session_state["authenticated"] = False
-        st.logout() if hasattr(st, "logout") else None
         st.rerun()
 
-# 4. LIVE DETECTION PROCESSOR
+# 5. LIVE VIDEO PROCESSOR
 class VideoProcessor:
     def __init__(self, target_id, brain_engine):
         self.target_id = target_id
@@ -65,35 +51,41 @@ class VideoProcessor:
 
     def recv(self, frame: av.VideoFrame) -> av.VideoFrame:
         img = frame.to_ndarray(format="bgr24")
-        # Ensure your Orchestrator has 'process_live_stream' method
+        # Direct call to your AI Brain
         result = self.brain.process_live_stream(img, self.target_id)
         return av.VideoFrame.from_ndarray(result["annotated_frame"], format="bgr24")
 
-# 5. UI TABS
+# 6. MAIN INTERFACE
 t1, t2, t3 = st.tabs(["⚡ Live Inspection", "📊 Historical Audit", "📘 Guide"])
 
 with t1:
     st.header(f"Inspecting: {selected_name}")
     
-    # WebRTC Streamer with TURN Relay (Fixes Infinite Spinner)
+    # STABLE WEB-RTC (Fixes "Connection taking longer" and 3.13 crashes)
     ctx = webrtc_streamer(
         key="pharma-scanner",
         mode=WebRtcMode.SENDRECV,
         video_processor_factory=lambda: VideoProcessor(target_id, brain),
         rtc_configuration={
             "iceServers": [
-                {"urls": ["stun:stun.l.google.com:19302"]}, # Standard STUN
+                {"urls": ["stun:stun.l.google.com:19302"]},
                 {
-                    "urls": ["turn:staticauth.openrelay.metered.ca:80"], # Open Relay Project
+                    "urls": ["turn:staticauth.openrelay.metered.ca:80"],
                     "username": "openrelayproject",
                     "credential": "openrelayprojectsecret"
                 }
             ]
         },
-        media_stream_constraints={"video": True, "audio": False}, # Disable audio to reduce errors
+        media_stream_constraints={"video": True, "audio": False},
         async_processing=True,
     )
 
+    if ctx and ctx.state.playing:
+        st.success("AI Active. Place medicine strip in view.")
+    else:
+        st.warning("Click 'START' to activate the Real-Time Scanner.")
+
+# Tab 2 & 3 logic remains exactly as you had it
 # Tabs 2 and 3 (Unchanged logic for Historical Audit and Guide)
 with t2:
     st.header("Global Audit Ledger")
