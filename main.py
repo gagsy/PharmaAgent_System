@@ -4,7 +4,6 @@ import numpy as np
 import cv2
 import sys
 import os
-import time
 import av
 from streamlit_webrtc import webrtc_streamer, WebRtcMode
 
@@ -42,10 +41,18 @@ def apply_enterprise_theme():
 
 apply_enterprise_theme()
 
-# 3. AUTHENTICATION (Keep existing logic)
-if not st.user.is_logged_in:
+# 3. SAFER AUTHENTICATION
+# Fixes AttributeError by checking if st.user is available and configured
+def check_auth():
+    try:
+        return st.user.is_logged_in
+    except (AttributeError, Exception):
+        # Fallback if st.user is not yet available in the environment
+        return False
+
+if not check_auth():
     st.title("🏥 PharmaAgent Secure Access")
-    st.info("Please log in to proceed.")
+    st.info("Please log in to proceed. Ensure Streamlit secrets are configured for OIDC.")
     st.button("🔐 SSO Login", on_click=st.login)
     st.stop()
 
@@ -71,11 +78,13 @@ with st.sidebar:
     target_id = next(k for k, v in med_data.items() if v['name'] == selected_name)
     
     st.divider()
-    st.write(f"👤 {st.user.name}")
+    # Safely display user name
+    user_name = getattr(st.user, 'name', 'Authorized User')
+    st.write(f"👤 {user_name}")
     if st.button("Logout", on_click=st.logout):
         st.stop()
 
-# 6. REAL-TIME VIDEO PROCESSOR CLASS
+# 6. REAL-TIME VIDEO PROCESSOR
 class VideoProcessor:
     def __init__(self, target_id, brain_engine):
         self.target_id = target_id
@@ -92,35 +101,26 @@ t1, t2, t3 = st.tabs(["⚡ Live Inspection", "📊 Historical Audit", "📘 Guid
 with t1:
     st.header(f"Inspecting: {selected_name}")
     
-    with st.popover("💡 View Photo Tips for 99% Accuracy"):
-        st.markdown("### **How to take the perfect medical photo:**")
-        col_tips1, col_tips2 = st.columns(2)
-        with col_tips1:
-            st.success("**✅ DO THIS**")
-            st.write("* Place on **Plain White** paper")
-            st.write("* Use **Indirect Light**")
-        with col_tips2:
-            st.error("**❌ AVOID THIS**")
-            st.write("* Dark/Cluttered backgrounds")
-            st.write("* Direct flash/glare")
-        st.info("Live streaming handles background noise automatically.")
+    with st.popover("💡 View Photo Tips"):
+        st.markdown("### **Tips for 99% Accuracy**")
+        st.write("* Place on **Plain White** paper\n* Use **Indirect Light**")
 
-    # UPDATED REAL-TIME STREAMER WITH FREE TURN RELAY
+    # UPDATED REAL-TIME STREAMER
+    # Resolves infinite loading by adding STUN and Open Relay TURN servers
     ctx = webrtc_streamer(
         key="pharma-scanner",
         mode=WebRtcMode.SENDRECV,
         video_processor_factory=lambda: VideoProcessor(target_id, brain),
-        # Fixes "Connection taking longer" error on cloud
         rtc_configuration={
             "iceServers": [
-                {"urls": ["stun:stun.l.google.com:19302"]}, # Standard Google STUN
+                {"urls": ["stun:stun.l.google.com:19302"]}, # Standard STUN
                 {
-                    "urls": ["turn:staticauth.openrelay.metered.ca:80"], # Open Relay Project Port 80
+                    "urls": ["turn:staticauth.openrelay.metered.ca:80"], # Open Relay Project
                     "username": "openrelayproject",
                     "credential": "openrelayprojectsecret"
                 },
                 {
-                    "urls": ["turn:staticauth.openrelay.metered.ca:443"], # Open Relay Project Port 443
+                    "urls": ["turn:staticauth.openrelay.metered.ca:443"],
                     "username": "openrelayproject",
                     "credential": "openrelayprojectsecret"
                 }
@@ -130,10 +130,11 @@ with t1:
         async_processing=True,
     )
 
-    if ctx.state.playing:
+    if ctx and ctx.state.playing:
         st.success("Scanner Active. Tracking Medicine...")
     else:
         st.warning("Click 'START' to activate the Real-Time AI Scanner.")
+
 
 # Tabs 2 and 3 (Unchanged logic for Historical Audit and Guide)
 with t2:
