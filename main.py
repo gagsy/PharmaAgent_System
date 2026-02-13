@@ -7,100 +7,57 @@ import os
 import av
 from streamlit_webrtc import webrtc_streamer, WebRtcMode
 
-# 1. ENTERPRISE SYSTEM INITIALIZATION
+# 1. SYSTEM INITIALIZATION
 sys.path.append(os.path.join(os.getcwd(), 'src'))
 from brain.orchestrator import Orchestrator
 
-# Standardize page config
-st.set_page_config(
-    page_title="PharmaAgent | Global Clinical Systems",
-    page_icon="🛡️",
-    layout="wide"
-)
+st.set_page_config(page_title="PharmaAgent | Live AI", page_icon="🛡️", layout="wide")
 
-# 2. UNIFIED ENTERPRISE CSS
-def apply_enterprise_theme():
-    st.markdown("""
-        <style>
-        .stDeployButton {display:none;}
-        footer {visibility: hidden;}
-        #stDecoration {display:none;}
-        [data-testid="stSidebar"] {
-            background-color: #0e1117;
-            border-right: 2px solid #30363d;
-        }
-        [data-testid="stSidebar"] h1, [data-testid="stSidebar"] h2, [data-testid="stSidebar"] label p {
-            color: #ffffff !important;
-            font-weight: 600 !important;
-        }
-        [data-testid="stMetricValue"] {
-            color: #58a6ff !important;
-        }
-        </style>
-    """, unsafe_allow_html=True)
-
-apply_enterprise_theme()
-
-# 3. SAFER AUTHENTICATION
-# Fixes AttributeError by checking if st.user is available and configured
-# --- FAIL-SAFE AUTHENTICATION BLOCK ---
-def check_auth():
-    """Detects if auth is supported and returns status safely"""
+# 2. FAIL-SAFE AUTHENTICATION (Resolves Blank Screen)
+def is_authenticated():
+    # Attempt to check Streamlit's built-in user object
     try:
-        # Check if the newer st.user API exists
-        if hasattr(st, "user"):
-            return st.user.is_logged_in
-        return False
+        if hasattr(st, "user") and st.user.is_logged_in:
+            return True
     except:
-        return False
+        pass
+    # Local session fallback for manual login/bypass
+    return st.session_state.get("authenticated", False)
 
-# Execute safe login check
-is_authenticated = check_auth()
-
-if not is_authenticated:
+if not is_authenticated():
     st.title("🏥 PharmaAgent Secure Access")
-    st.info("Please log in to proceed. System is OIDC-ready.")
     
-    # Use a safer conditional for the login button to avoid AttributeError
+    # Try the professional SSO button
     if hasattr(st, "login"):
+        st.info("System OIDC-Ready. Authenticate to proceed.")
         st.button("🔐 SSO Login", on_click=st.login)
-    else:
-        # Emergency local bypass for testing during buyer demos
-        if st.checkbox("Admin Bypass (Internal Testing Only)"):
-            st.session_state["local_auth"] = True
+    
+    # Manual Access Gate (Prevents Blank Screen if SSO fails)
+    st.divider()
+    st.subheader("Manual Access")
+    access_code = st.text_input("Enter Security PIN", type="password")
+    if st.button("Unlock System"):
+        if access_code == "1234": # Your Demo PIN
+            st.session_state["authenticated"] = True
             st.rerun()
+        else:
+            st.error("Invalid PIN")
     st.stop()
 
-    
-# 4. DATA LOADING
-@st.cache_data(show_spinner=False)
-def load_med_data():
-    with open('data/inventory.json', 'r') as f:
-        return json.load(f)
-
-med_data = load_med_data()
+# 3. CORE LOGIC (Only runs if authenticated)
+med_data = json.load(open('data/inventory.json', 'r'))
 brain = Orchestrator()
 
-# 5. SIDEBAR: DATA EXTRACTION
 with st.sidebar:
     st.title("🛡️ PharmaGuard")
-    st.divider()
-    c1, c2 = st.columns(2)
-    c1.metric("Accuracy", "99.8%")
-    c2.metric("Audit", "Valid")
-    st.divider()
-    
     selected_name = st.selectbox("Current Task", options=[v['name'] for v in med_data.values()])
     target_id = next(k for k, v in med_data.items() if v['name'] == selected_name)
-    
-    st.divider()
-    # Safely display user name
-    user_name = getattr(st.user, 'name', 'Authorized User')
-    st.write(f"👤 {user_name}")
-    if st.button("Logout", on_click=st.logout):
-        st.stop()
+    if st.button("Logout"):
+        st.session_state["authenticated"] = False
+        st.logout() if hasattr(st, "logout") else None
+        st.rerun()
 
-# 6. REAL-TIME VIDEO PROCESSOR
+# 4. LIVE DETECTION PROCESSOR
 class VideoProcessor:
     def __init__(self, target_id, brain_engine):
         self.target_id = target_id
@@ -108,52 +65,34 @@ class VideoProcessor:
 
     def recv(self, frame: av.VideoFrame) -> av.VideoFrame:
         img = frame.to_ndarray(format="bgr24")
+        # Ensure your Orchestrator has 'process_live_stream' method
         result = self.brain.process_live_stream(img, self.target_id)
         return av.VideoFrame.from_ndarray(result["annotated_frame"], format="bgr24")
 
-# 7. MAIN WORKFLOW
+# 5. UI TABS
 t1, t2, t3 = st.tabs(["⚡ Live Inspection", "📊 Historical Audit", "📘 Guide"])
 
 with t1:
     st.header(f"Inspecting: {selected_name}")
     
-    with st.popover("💡 View Photo Tips"):
-        st.markdown("### **Tips for 99% Accuracy**")
-        st.write("* Place on **Plain White** paper\n* Use **Indirect Light**")
-
-    # UPDATED REAL-TIME STREAMER
-    # Resolves infinite loading by adding STUN and Open Relay TURN servers
+    # WebRTC Streamer with TURN Relay (Fixes Infinite Spinner)
     ctx = webrtc_streamer(
         key="pharma-scanner",
         mode=WebRtcMode.SENDRECV,
-        # Fix 1: Ensure factory is initialized with the brain engine
         video_processor_factory=lambda: VideoProcessor(target_id, brain),
-        # Fix 2: Bypassing NAT/Firewall using Open Relay TURN
         rtc_configuration={
             "iceServers": [
-                {"urls": ["stun:stun.l.google.com:19302"]},
+                {"urls": ["stun:stun.l.google.com:19302"]}, # Standard STUN
                 {
-                    "urls": ["turn:staticauth.openrelay.metered.ca:80"],
-                    "username": "openrelayproject",
-                    "credential": "openrelayprojectsecret"
-                },
-                {
-                    "urls": ["turn:staticauth.openrelay.metered.ca:443"],
+                    "urls": ["turn:staticauth.openrelay.metered.ca:80"], # Open Relay Project
                     "username": "openrelayproject",
                     "credential": "openrelayprojectsecret"
                 }
             ]
         },
-        # Fix 3: Disable audio to prevent 'Null properties' errors in browser console
-        media_stream_constraints={"video": True, "audio": False},
+        media_stream_constraints={"video": True, "audio": False}, # Disable audio to reduce errors
         async_processing=True,
     )
-    
-    if ctx and ctx.state.playing:
-        st.success("Scanner Active. Tracking Medicine...")
-    else:
-        st.warning("Click 'START' to activate the Real-Time AI Scanner.")
-
 
 # Tabs 2 and 3 (Unchanged logic for Historical Audit and Guide)
 with t2:
