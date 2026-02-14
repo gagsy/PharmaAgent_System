@@ -3,8 +3,13 @@ import cv2
 import json
 from ultralytics import YOLO
 
+# FILE: src/agents/vision_agent.py
+
 class VisionAgent:
-    def __init__(self, model_path="models/bestlatest.pt"):
+    def __init__(self, model_path="runs/detect/runs/pharma/exp_final_attempt4/weights/best.pt"):
+        # 1. LOAD ONLY YOUR CUSTOM BRAIN
+        # This replaces generic 'yolo11n.pt' and removes traffic lights.
+        self.model = YOLO(model_path)
         """
         Initializes the YOLO model with custom medicine weights.
        
@@ -27,8 +32,8 @@ class VisionAgent:
         """
         # Run inference with a higher confidence threshold for pharmaceutical accuracy.
         #
-        results = self.model(image_path, conf=0.6)
-        
+        # Force the model to ONLY see your 5 medicines
+        results = self.model(image_path, conf=0.6, classes=[0, 1, 2, 3, 4])
         # Load image for visual annotation
         img = cv2.imread(image_path)
         
@@ -62,6 +67,8 @@ class VisionAgent:
         
         return {"status": "UNKNOWN", "detected_pill_id": "none"}
 
+  
+  
     def analyze_frame(self, frame, target_id):
         """
         Processes live video frames with dynamic box colors based on target medicine.
@@ -69,7 +76,8 @@ class VisionAgent:
         """
         # Run real-time inference. Lower confidence threshold allows for flicker-free video.
         # Set verbose=False to keep the console clean.
-        results = self.model(frame, conf=0.5, verbose=False)
+        # Add the classes filter here too to keep live video clean
+        results = self.model(frame, conf=0.5, verbose=False, classes=[0, 1, 2, 3, 4])
         
         detected_id = "none"
         annotated_frame = frame.copy()

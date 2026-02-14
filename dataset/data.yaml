@@ -1,6 +1,12 @@
-path: C:\xampp\htdocs\PharmaAgent_System\dataset
+# Corrected data.yaml
+path: C:/xampp/htdocs/PharmaAgent_System/dataset
 train: images/train
 val: images/train
 
 nc: 5
-names: ['drug_crocin_advance', 'drug_paracetamol_650', 'drug_combiflam', 'drug_cetirizine', 'drug_gelusil']
+names:
+  0: drug_crocin_advance
+  1: drug_paracetamol_650
+  2: drug_combiflam
+  3: drug_cetirizine
+  4: drug_gelusil
