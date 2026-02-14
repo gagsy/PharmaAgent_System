@@ -6,7 +6,7 @@ from ultralytics import YOLO
 # FILE: src/agents/vision_agent.py
 
 class VisionAgent:
-    def __init__(self, model_path="runs/detect/runs/pharma/exp_final_attempt4/weights/best.pt"):
+    def __init__(self, model_path="runs/detect/runs/pharma/exp_final_attempt6/weights/best.pt"):
         # 1. LOAD ONLY YOUR CUSTOM BRAIN
         # This replaces generic 'yolo11n.pt' and removes traffic lights.
         self.model = YOLO(model_path)
