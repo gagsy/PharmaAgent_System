@@ -4,35 +4,46 @@ import json
 from ultralytics import YOLO
 
 # FILE: src/agents/vision_agent.py
-
 class VisionAgent:
-    def __init__(self, model_path="runs/pharma/exp_augmented_final/weights/best.pt"):
-        # Explicitly check if the file exists in the Docker path
-        if os.path.exists(model_path):
-            self.model = YOLO(model_path) # Loads Medicine Brain
-        else:
-            # If this runs, it means your volumes are still broken!
-            print("CRITICAL ERROR: CUSTOM MODEL NOT FOUND!")
-            self.model = YOLO("yolo11n.pt") # Loads 'Remote/Traffic Light' Brain
-            
-                    # Load custom trained YOLO brain.
-        # Fallback to default path if the primary one is missing.
-        if not os.path.exists(model_path):
-            print(f"Warning: {model_path} not found. Loading generic YOLOv8n.")
-            self.model = YOLO('yolov8n.pt') 
-        else:
-            self.model = YOLO(model_path)
+    def __init__(self):
+        # 1. Print every file in the app directory to find best.pt or best.onnx
+        print("--- DOCKER FILE SYSTEM CHECK ---")
+        found_onnx = None
+        found_pt = None
         
+        for root, dirs, files in os.walk("/usr/src/app/runs"):
+            for file in files:
+                # Prioritize finding the production ONNX model
+                if file == "best.onnx":
+                    found_onnx = os.path.join(root, file)
+                    print(f"🎯 FOUND PRODUCTION MODEL: {found_onnx}")
+                elif file == "best.pt":
+                    found_pt = os.path.join(root, file)
+                    print(f"🎯 FOUND TRAINING MODEL: {found_pt}")
+
+        # 2. Path Logic: Use ONNX if available, otherwise use PT, otherwise fallback
+        # Primary production path check
+        model_path = "/usr/src/app/runs/detect/runs/pharma/exp_augmented_final/weights/best.onnx"
+        
+        # If the specific augmented path doesn't exist, use the one found during walk
+        if not os.path.exists(model_path):
+            model_path = found_onnx if found_onnx else found_pt
+        
+        if model_path and os.path.exists(model_path):
+            self.model = YOLO(model_path)
+            print(f"✅ SUCCESS: {os.path.basename(model_path)} loaded.")
+        else:
+            print("❌ ERROR: Custom model not found. Falling back to generic yolo11n.pt")
+            self.model = YOLO("yolo11n.pt")        
+            
         # Mapping for detected classes
         self.model_names = self.model.names 
 
     def analyze_pill(self, image_path):
         """
         Processes a static image upload and draws bounding boxes.
-       
         """
         # Run inference with a higher confidence threshold for pharmaceutical accuracy.
-        #
         # Force the model to ONLY see your 5 medicines
         results = self.model(image_path, conf=0.25, classes=[0, 1, 2, 3, 4])
         # Load image for visual annotation
@@ -68,12 +79,9 @@ class VisionAgent:
         
         return {"status": "UNKNOWN", "detected_pill_id": "none"}
 
-  
-  
     def analyze_frame(self, frame, target_id):
         """
         Processes live video frames with dynamic box colors based on target medicine.
-       
         """
         # Run real-time inference. Lower confidence threshold allows for flicker-free video.
         # Set verbose=False to keep the console clean.
