@@ -6,7 +6,7 @@ from ultralytics import YOLO
 # FILE: src/agents/vision_agent.py
 
 class VisionAgent:
-    def __init__(self, model_path="runs/detect/runs/pharma/exp_final_attempt6/weights/best.pt"):
+    def __init__(self, model_path="runs/detect/runs/pharma/exp_augmented_final/weights/best.pt"):
         # 1. LOAD ONLY YOUR CUSTOM BRAIN
         # This replaces generic 'yolo11n.pt' and removes traffic lights.
         self.model = YOLO(model_path)
@@ -33,7 +33,7 @@ class VisionAgent:
         # Run inference with a higher confidence threshold for pharmaceutical accuracy.
         #
         # Force the model to ONLY see your 5 medicines
-        results = self.model(image_path, conf=0.6, classes=[0, 1, 2, 3, 4])
+        results = self.model(image_path, conf=0.25, classes=[0, 1, 2, 3, 4])
         # Load image for visual annotation
         img = cv2.imread(image_path)
         
