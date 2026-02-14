@@ -5,13 +5,13 @@
     "warnings": "Fast-absorbing paracetamol; do not exceed 4000mg/day to avoid liver damage."
   },
   "drug_paracetamol_650": {
-    "name": "Paracetamol (Dolo/Crocin 650)",
+    "name": "Paracetamol (Dolo Crocin 650)",
     "dose": "650mg",
     "warnings": "Standard for high fever; leave at least 4-6 hours between doses."
   },
   "drug_combiflam": {
     "name": "Combiflam",
-    "dose": "400mg Ibuprofen / 325mg Paracetamol",
+    "dose": "400mg Ibuprofen   325mg Paracetamol",
     "warnings": "Take with food to prevent stomach upset; avoid in patients with asthma or ulcers."
   },
   "drug_cetirizine": {
@@ -21,18 +21,23 @@
   },
   "drug_gelusil": {
     "name": "Gelusil",
-    "dose": "Tablet/Syrup",
+    "dose": "Tablet Syrup",
     "warnings": "Antacid for acidity and heartburn; take after meals or at bedtime."
   },
   "drug_digene": {
     "name": "Digene",
-    "dose": "Tablet/Syrup",
+    "dose": "Tablet Syrup",
     "warnings": "Relieves gas and acidity; chew tablets thoroughly before swallowing."
   },
   "drug_vicks_action_500": {
     "name": "Vicks Action 500",
     "dose": "500mg (Combination)",
     "warnings": "Used for cold relief; contains paracetamol; do not take with other cold/flu meds."
+  },
+  "drug_sitagliptin_metformin": {
+    "name": "Janumet",
+    "dose": "50 500mg",
+    "warnings": "Combo drug; take with meals."
   },
   "drug_atorvastatin": {"name": "Atorvastatin", "dose": "20mg", "warnings": "Avoid grapefruit juice; report muscle pain."},
   "drug_levothyroxine": {"name": "Levothyroxine", "dose": "50mcg", "warnings": "Take on empty stomach 30-60 mins before breakfast."},
@@ -132,6 +137,5 @@
   "drug_isosorbide_mononitrate": {"name": "Isosorbide Mononitrate", "dose": "30mg", "warnings": "Do not use with ED medications."},
   "drug_doxazosin": {"name": "Doxazosin", "dose": "1mg", "warnings": "Risk of fainting upon standing after first dose."},
   "drug_temazepam": {"name": "Temazepam", "dose": "15mg", "warnings": "Short-term sleep aid (7-10 days)."},
-  "drug_zolpidem": {"name": "Zolpidem", "dose": "5mg", "warnings": "May cause sleepwalking or sleep-driving."},
-  "drug_sitagliptin_metformin": {"name": "Janumet", "dose": "50/500mg", "warnings": "Combo drug; take with meals."}
+  "drug_zolpidem": {"name": "Zolpidem", "dose": "5mg", "warnings": "May cause sleepwalking or sleep-driving."}
 }
