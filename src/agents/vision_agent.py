@@ -6,15 +6,16 @@ from ultralytics import YOLO
 # FILE: src/agents/vision_agent.py
 
 class VisionAgent:
-    def __init__(self, model_path="runs/detect/runs/pharma/exp_augmented_final/weights/best.pt"):
-        # 1. LOAD ONLY YOUR CUSTOM BRAIN
-        # This replaces generic 'yolo11n.pt' and removes traffic lights.
-        self.model = YOLO(model_path)
-        """
-        Initializes the YOLO model with custom medicine weights.
-       
-        """
-        # Load custom trained YOLO brain.
+    def __init__(self, model_path="runs/pharma/exp_augmented_final/weights/best.pt"):
+        # Explicitly check if the file exists in the Docker path
+        if os.path.exists(model_path):
+            self.model = YOLO(model_path) # Loads Medicine Brain
+        else:
+            # If this runs, it means your volumes are still broken!
+            print("CRITICAL ERROR: CUSTOM MODEL NOT FOUND!")
+            self.model = YOLO("yolo11n.pt") # Loads 'Remote/Traffic Light' Brain
+            
+                    # Load custom trained YOLO brain.
         # Fallback to default path if the primary one is missing.
         if not os.path.exists(model_path):
             print(f"Warning: {model_path} not found. Loading generic YOLOv8n.")

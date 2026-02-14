@@ -13,6 +13,7 @@ services:
       - ./models:/usr/src/app/models
       - ./dataset:/usr/src/app/dataset
       - ./src:/usr/src/app/src
+      - ./runs:/usr/src/app/runs
     
     # Environment variables to help WebRTC find the right address
     environment:
