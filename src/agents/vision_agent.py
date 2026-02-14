@@ -4,10 +4,10 @@ import os
 import cv2
 
 class VisionAgent:
-    def __init__(self, model_path="models/best.pt"):
+    def __init__(self, model_path="models/bestnew.pt"):
         # Load the custom trained YOLO brain
         if not os.path.exists(model_path):
-            self.model = YOLO('models/best.pt')
+            self.model = YOLO('models/bestnew.pt')
         else:
             self.model = YOLO(model_path)
         
