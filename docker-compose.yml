@@ -3,21 +3,21 @@ services:
     build: .
     ports:
       - "8501:8501"
-      # NEW: WebRTC Signaling and Data ports (Standard range for STUN/TURN)
       - "8502:8502"
       - "3478:3478/udp" 
     volumes:
-      # Use ${PWD} for more stable path mapping on Windows
+      # Mount the root once to provide all code and main.py
       - .:/usr/src/app
-      - ./data:/usr/src/app/data
+      # Explicitly mount data with Read/Write access for logs
+      - ./data:/usr/src/app/data:rw
       - ./models:/usr/src/app/models
       - ./dataset:/usr/src/app/dataset
-      - ./src:/usr/src/app/src
       - ./runs:/usr/src/app/runs
     
-    # Environment variables to help WebRTC find the right address
     environment:
       - STREAMLIT_SERVER_PORT=8501
       - STREAMLIT_SERVER_ADDRESS=0.0.0.0
+      # Ensure Python doesn't buffer logs so they appear in Tab 2 instantly
+      - PYTHONUNBUFFERED=1
     
     restart: unless-stopped
