@@ -17,9 +17,9 @@ class VisionAgent:
         
         # Priority paths for Docker, Local (XAMPP), and Streamlit Cloud
         model_paths = [
-            "/app/models/medicine_v1.onnx", # Docker Prod
+            "/app/models/best.onnx", # Docker Prod
             r"C:\xampp\htdocs\PharmaAgent_System\runs\detect\runs\pharma\exp_augmented_final\weights\best.onnx", # Local Windows
-            os.path.join(self.project_root, "models/medicine_v1.onnx"), # Git/Cloud
+            os.path.join(self.project_root, "models/best.onnx"), # Git/Cloud
             "models/best.onnx"
         ]
         
