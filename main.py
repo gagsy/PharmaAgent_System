@@ -5,15 +5,23 @@ import cv2
 import sys
 import os
 import av
-import pandas as pd # Added for data handling
+import pandas as pd
 from datetime import datetime
 from streamlit_webrtc import webrtc_streamer, WebRtcMode
 
-# 1. INITIALIZATION
-sys.path.append(os.path.join(os.getcwd(), 'src'))
+# 1. INITIALIZATION & PATH FIXING
+# This dynamically finds the root directory of your project
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+# Ensure 'src' is in the path for both local and Docker
+sys.path.append(os.path.join(BASE_DIR, 'src'))
 from brain.orchestrator import Orchestrator
 
 st.set_page_config(page_title="PharmaAgent | AI Scanner", page_icon="🛡️", layout="wide")
+
+# Helper to build dynamic paths
+def get_path(relative_path):
+    return os.path.join(BASE_DIR, relative_path)
 
 # 2. STABLE AUTHENTICATION GATE
 if "authenticated" not in st.session_state:
@@ -32,9 +40,14 @@ if not st.session_state["authenticated"]:
     st.stop()
 
 # 3. LOAD DATA & AI ENGINE
-med_data = json.load(open('data/inventory.json', 'r'))
+# Updated to use dynamic paths for inventory and history
+inventory_path = get_path('data/inventory.json')
+history_file = get_path('data/history.json')
+
+with open(inventory_path, 'r') as f:
+    med_data = json.load(f)
+
 brain = Orchestrator()
-history_file = "data/history.json" # Path used by VisionAgent
 
 # 4. SIDEBAR LOGIC & LIVE AUDIT VIEW
 with st.sidebar:
@@ -46,7 +59,6 @@ with st.sidebar:
     st.divider()
     st.subheader("📋 Recent Detections")
     
-    # Live Sidebar History Logic
     if os.path.exists(history_file):
         try:
             with open(history_file, 'r') as f:
@@ -54,10 +66,8 @@ with st.sidebar:
             
             if history_data:
                 df_side = pd.DataFrame(history_data)
-                # Show last 5 detections for quick glance
                 st.table(df_side[['timestamp', 'medicine', 'confidence']].iloc[::-1].head(5))
                 
-                # Download Button for the sidebar
                 csv = df_side.to_csv(index=False).encode('utf-8')
                 st.download_button(
                     label="📥 Export History (CSV)",
@@ -114,30 +124,20 @@ with t1:
         st.success("AI Active. Place medicine strip in view.")
     else:
         st.warning("Click 'START' to activate the Real-Time Scanner.")
+
 with t2:
     st.header("📊 Global Audit Ledger")
     
-    # Path must match where VisionAgent writes the CSV inside the container
-    log_path = "data/logs/audit_trail.csv"
+    # Updated to dynamic path
+    log_path = get_path('data/logs/audit_trail.csv')
     
     if os.path.exists(log_path):
-        import pandas as pd
         try:
-            # 1. Read the CSV using comma separator to match VisionAgent's write format
             df = pd.read_csv(log_path, on_bad_lines='skip')
+            st.dataframe(df.iloc[::-1], use_container_width=True, hide_index=True)
             
-            # 2. Display the Audit Table
-            # We show the newest records at the top
-            st.dataframe(
-                df.iloc[::-1], 
-                use_container_width=True, 
-                hide_index=True
-            )
-            
-            # 3. Download & Management Tools
             col1, col2 = st.columns(2)
             with col1:
-                # Convert current dataframe to CSV for download
                 csv_download = df.to_csv(index=False).encode('utf-8')
                 st.download_button(
                     label="📥 Download CSV Audit Report",
@@ -147,19 +147,17 @@ with t2:
                 )
             
             with col2:
-                # Option to clear the ledger (use with caution in prod)
                 if st.button("🗑️ Reset Audit Ledger"):
-                    # Create a fresh file with just the header to avoid panda errors next load
+                    # Ensure directory exists before writing
+                    os.makedirs(os.path.dirname(log_path), exist_ok=True)
                     with open(log_path, "w") as f:
                         f.write("status,msg,timestamp\n")
                     st.rerun()
 
         except Exception as e:
             st.error(f"⚠️ Error loading audit logs: {e}")
-            # Diagnostic help for the developer
-            st.info(f"Checking path: {os.path.abspath(log_path)}")
+            st.info(f"Diagnostic Path: {log_path}")
     else:
-        # Shown if the 'logs' folder or file hasn't been created yet
         st.warning("No audit records found. Detected medicines will appear here automatically.")
         
 with t3:
@@ -168,5 +166,5 @@ with t3:
     - **Step 1:** Select the drug from the 'Current Task' dropdown.
     - **Step 2:** Click 'START' on the Live Inspection tab.
     - **Step 3:** Align the medicine strip. A **Green Box** confirms a match.
-    - **Step 4:** Verified detections (>80% confidence) are logged automatically to the Sidebar and Audit tab.
+    - **Step 4:** Verified detections (>80% confidence) are logged automatically.
     """)

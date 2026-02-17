@@ -2,11 +2,6 @@
 .streamlit/secrets.toml
 .env
 
-# Large AI Assets
-*.pt
-*.onnx
-yolov8n.pt
-
 # Temporary/Cache Files
 __pycache__/
 *.pyc

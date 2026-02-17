@@ -8,3 +8,5 @@ pandas
 onnx>=1.12.0
 onnxslim>=0.1.71
 onnxruntime
+pytesseract
+pillow
