@@ -67,66 +67,54 @@ class VisionAgent:
         return cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
 
     def analyze_frame(self, frame, target_id):
-    if frame is None:
-        return {"detected_id": "none", "confidence": 0.0, "match_status": "ERROR"}
-    
-    # 1. FIX COLOR: Explicitly convert RGB to BGR
-    # This prevents the AI from getting confused by swapped colors
-    frame_bgr = self._preprocess_frame(frame)
-    
-    try:
-        # 2. RUN DETECTION
-        # We search for all custom classes in your model
-        results = self.model(frame_bgr, conf=0.35, verbose=False)
-    except Exception as e:
-        print(f"❌ INFERENCE ERROR: {e}", file=sys.stderr)
-        return {"detected_id": "none", "confidence": 0.0, "match_status": "ERROR"}
-    
-    detected_id = "none"
-    conf = 0.0
-    annotated_frame = frame_bgr.copy()
-    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        if frame is None:
+            return {"detected_id": "none", "confidence": 0.0, "match_status": "ERROR"}
+        
+        frame = self._preprocess_frame(frame)
+        
+        try:
+            # We remove classes=[0,1,2,3,4] to ensure it uses your custom classes
+            results = self.model(frame, conf=0.45, verbose=False)
+        except Exception as e:
+            return {"detected_id": "none", "confidence": 0.0, "match_status": "ERROR"}
+        
+        detected_id = "none"
+        conf = 0.0
+        annotated_frame = frame.copy()
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-    for r in results:
-        if len(r.boxes) > 0:
-            box = r.boxes[0]
-            class_id = int(box.cls[0])
-            detected_id = self.model_names.get(class_id, "Unknown")
-            conf = float(box.conf[0])
+        for r in results:
+            if len(r.boxes) > 0:
+                box = r.boxes[0]
+                class_id = int(box.cls[0])
+                detected_id = self.model_names.get(class_id, "Unknown")
+                conf = float(box.conf[0])
 
-            # 3. MATCH LOGIC
-            is_match = (detected_id == target_id)
-            box_color = (0, 255, 0) if is_match else (0, 0, 255) # BGR: Green vs Red
-            
-            x1, y1, x2, y2 = map(int, box.xyxy[0])
-            cv2.rectangle(annotated_frame, (x1, y1), (x2, y2), box_color, 4)
-            cv2.putText(annotated_frame, f"{detected_id} {conf:.2f}", (x1, y1 - 10), 
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.8, box_color, 2)
-            
-            # 4. HUMAN-READABLE LOGGING
-            # Lowering log threshold slightly to ensure robustness in different lighting
-            if conf > 0.40:
-                status = "✅ VERIFIED" if is_match else "❌ MISMATCH"
-                # Simple man readable notes
-                msg = f"Correct: {detected_id}" if is_match else f"Alert! Found {detected_id}"
+                is_match = (detected_id == target_id)
+                box_color = (0, 255, 0) if is_match else (0, 0, 255)
                 
-                try:
-                    # Writing EXACTLY 4 columns to match the main.py UI table
-                    with open(self.history_file, "a", encoding='utf-8') as f:
-                        f.write(f"{status},{msg},{timestamp},{conf:.2%}\n")
-                        f.flush() # Force write to disk
-                except Exception as e:
-                    print(f"❌ LOG ERROR: {e}", file=sys.stderr)
-            break 
-
-        # 5. CONVERT BACK FOR UI
-        # We display RGB in the browser but processed BGR in the AI
-        display_frame = cv2.cvtColor(annotated_frame, cv2.COLOR_BGR2RGB)
+                x1, y1, x2, y2 = map(int, box.xyxy[0])
+                cv2.rectangle(annotated_frame, (x1, y1), (x2, y2), box_color, 4)
+                cv2.putText(annotated_frame, f"{detected_id} {conf:.2f}", (x1, y1 - 10), 
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.8, box_color, 2)
+                
+                if conf > 0.45:
+                    status = "SAFE" if is_match else "DANGER"
+                    msg = f"Verified: {detected_id}" if is_match else f"Mismatch! Detected {detected_id}"
+                    try:
+                        with open(self.history_file, "a", encoding='utf-8') as f:
+                            f.write(f"{status},{msg},{timestamp},{self.model_loaded_from},{conf:.3f}\n")
+                    except Exception as e:
+                        print(f"❌ LOG ERROR: {e}", file=sys.stderr)
+                break 
 
         return {
             "detected_id": detected_id,
             "confidence": conf,
-            "annotated_frame": display_frame,
+            "annotated_frame": annotated_frame,
             "match_status": "VERIFIED" if detected_id == target_id else "MISMATCH",
             "model_source": self.model_loaded_from
-        }  
+        }
+
+
+        
