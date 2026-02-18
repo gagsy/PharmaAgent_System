@@ -8,6 +8,7 @@ import av
 import pandas as pd
 from datetime import datetime
 from streamlit_webrtc import webrtc_streamer, WebRtcMode
+import time
 
 # 1. INITIALIZATION & PATH FIXING
 # This dynamically finds the root directory of your project
@@ -23,22 +24,44 @@ st.set_page_config(page_title="PharmaAgent | AI Scanner", page_icon="🛡️", l
 def get_path(relative_path):
     return os.path.join(BASE_DIR, relative_path)
 
-# 2. STABLE AUTHENTICATION GATE
+# --- CONFIGURATION ---
+TIMEOUT_SECONDS = 600  # 10 minutes (600 seconds)
+DEMO_PIN = "9@26"
+
+# 1. INITIALIZE SESSION STATE
 if "authenticated" not in st.session_state:
     st.session_state["authenticated"] = False
+if "last_activity" not in st.session_state:
+    st.session_state["last_activity"] = time.time()
 
+# 2. CHECK FOR TIMEOUT (Auto-logout logic)
+if st.session_state["authenticated"]:
+    current_time = time.time()
+    elapsed_time = current_time - st.session_state["last_activity"]
+    
+    if elapsed_time > TIMEOUT_SECONDS:
+        st.session_state["authenticated"] = False
+        st.warning("Session expired due to inactivity. Please log in again.")
+        st.rerun()
+    else:
+        # Update last activity timestamp on every interaction
+        st.session_state["last_activity"] = current_time
+
+# 3. STABLE AUTHENTICATION GATE
 if not st.session_state["authenticated"]:
     st.title("🏥 PharmaAgent Secure Access")
     st.info("System is ready for Live AI Inspection.")
     access_code = st.text_input("Security PIN", type="password", help="Enter demo pin to start")
+    
     if st.button("Unlock System"):
-        if access_code == "1234": 
+        if access_code == DEMO_PIN: 
             st.session_state["authenticated"] = True
+            st.session_state["last_activity"] = time.time() # Reset timer on login
             st.rerun()
         else:
             st.error("Invalid PIN")
     st.stop()
-
+    
 # 3. LOAD DATA & AI ENGINE
 # Updated to use dynamic paths for inventory and history
 inventory_path = get_path('data/inventory.json')
@@ -199,8 +222,8 @@ with t2:
             st.info(f"Diagnostic Path: {log_path}")
     else:
         st.warning("No audit records found. Detected medicines will appear here automatically.")
-        
-                        
+
+
 with t3:
     st.header("Medical System Handbook")
     st.markdown("""
