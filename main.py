@@ -124,7 +124,6 @@ with t1:
         st.success("AI Active. Place medicine strip in view.")
     else:
         st.warning("Click 'START' to activate the Real-Time Scanner.")
-
 with t2:
     st.header("📊 Global Audit Ledger")
     
@@ -137,20 +136,44 @@ with t2:
 
     log_path = get_path('data/logs/audit_trail.csv')
 
-    # 2. Add an explicit Refresh button for the "Simple Man"
+    # 2. Refresh Button for the "Simple Man"
     if st.button("🔄 Check for New Detections"):
-        load_fresh_logs.clear() # This forces a fresh read of the CSV
+        load_fresh_logs.clear()
         st.rerun()
 
     if os.path.exists(log_path):
         try:
-            # Load data using the cache-clearable function
             df = load_fresh_logs(log_path)
             
             if df is not None and not df.empty:
-                # Display newest results first
-                st.dataframe(df.iloc[::-1], use_container_width=True, hide_index=True)
+                # --- PAGINATION LOGIC START ---
+                # Reverse to show newest results first
+                df_display = df.iloc[::-1].reset_index(drop=True)
                 
+                # Pagination Controls
+                col_p1, col_p2, col_p3 = st.columns([2, 2, 3])
+                with col_p1:
+                    rows_per_page = st.selectbox("Rows per page", options=[10, 20, 50, 100], index=0)
+                
+                total_rows = len(df_display)
+                total_pages = max(1, (total_rows - 1) // rows_per_page + 1)
+                
+                with col_p2:
+                    current_page = st.number_input("Page", min_value=1, max_value=total_pages, step=1, value=1)
+                
+                with col_p3:
+                    st.markdown(f"**Total Records:** {total_rows} | **Page:** {current_page}/{total_pages}")
+
+                # Slice the dataframe for the current page
+                start_idx = (current_page - 1) * rows_per_page
+                end_idx = start_idx + rows_per_page
+                paginated_df = df_display.iloc[start_idx:end_idx]
+
+                # Display the Paginated Table
+                st.dataframe(paginated_df, use_container_width=True, hide_index=True)
+                # --- PAGINATION LOGIC END ---
+
+                # Actions Row
                 col1, col2 = st.columns(2)
                 with col1:
                     csv_download = df.to_csv(index=False).encode('utf-8')
@@ -165,7 +188,6 @@ with t2:
                     if st.button("🗑️ Reset Audit Ledger"):
                         os.makedirs(os.path.dirname(log_path), exist_ok=True)
                         with open(log_path, "w") as f:
-                            # Ensuring we maintain your 4-column structure
                             f.write("Result,Inspection Notes,Time,AI Certainty\n")
                         load_fresh_logs.clear()
                         st.rerun()
@@ -177,7 +199,8 @@ with t2:
             st.info(f"Diagnostic Path: {log_path}")
     else:
         st.warning("No audit records found. Detected medicines will appear here automatically.")
-                
+        
+                        
 with t3:
     st.header("Medical System Handbook")
     st.markdown("""
