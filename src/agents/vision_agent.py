@@ -84,30 +84,45 @@ class VisionAgent:
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
         for r in results:
-            if len(r.boxes) > 0:
-                box = r.boxes[0]
-                class_id = int(box.cls[0])
-                detected_id = self.model_names.get(class_id, "Unknown")
-                conf = float(box.conf[0])
+                if len(r.boxes) > 0:
+                    box = r.boxes[0]
+                    class_id = int(box.cls[0])
+                    detected_id = self.model_names.get(class_id, "Unknown")
+                    conf = float(box.conf[0])
 
-                is_match = (detected_id == target_id)
-                box_color = (0, 255, 0) if is_match else (0, 0, 255)
-                
-                x1, y1, x2, y2 = map(int, box.xyxy[0])
-                cv2.rectangle(annotated_frame, (x1, y1), (x2, y2), box_color, 4)
-                cv2.putText(annotated_frame, f"{detected_id} {conf:.2f}", (x1, y1 - 10), 
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.8, box_color, 2)
-                
-                if conf > 0.45:
-                    status = "SAFE" if is_match else "DANGER"
-                    msg = f"Verified: {detected_id}" if is_match else f"Mismatch! Detected {detected_id}"
-                    try:
-                        with open(self.history_file, "a", encoding='utf-8') as f:
-                            f.write(f"{status},{msg},{timestamp},{self.model_loaded_from},{conf:.3f}\n")
-                    except Exception as e:
-                        print(f"❌ LOG ERROR: {e}", file=sys.stderr)
-                break 
+                    # Step 3: Align and Match Logic
+                    # Compare camera detection to the dropdown selection (target_id)
+                    is_match = (detected_id == target_id)
+                    
+                    # Green Box (0, 255, 0) for match, Red Box (0, 0, 255) for mismatch
+                    box_color = (0, 255, 0) if is_match else (0, 0, 255)
+                    
+                    x1, y1, x2, y2 = map(int, box.xyxy[0])
+                    cv2.rectangle(annotated_frame, (x1, y1), (x2, y2), box_color, 4)
+                    
+                    # High-visibility label
+                    label_text = f"{detected_id} ({conf:.1%})"
+                    cv2.putText(annotated_frame, label_text, (x1, y1 - 10), 
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.8, box_color, 2)
+                    
+                    # Step 4: Verified Detections (>80% confidence)
+                    if conf > 0.80:
+                        # Human-friendly messages for the Audit Ledger
+                        status = "✅ VERIFIED" if is_match else "❌ MISMATCH"
+                        msg = f"Correct: {detected_id}" if is_match else f"Alert! Found {detected_id} instead of {target_id}"
+                        
+                        try:
+                            # Write exactly 4 columns to match the main.py UI
+                            with open(self.history_file, "a", encoding='utf-8') as f:
+                                f.write(f"{status},{msg},{timestamp},{conf:.2%}\n")
+                                f.flush() # Force write to disk immediately
+                        except Exception as e:
+                            print(f"❌ LOG ERROR: {e}", file=sys.stderr)
+                    
+                    # Process only the top detection per frame
+                    break
 
+                
         return {
             "detected_id": detected_id,
             "confidence": conf,
