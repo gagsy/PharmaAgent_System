@@ -128,38 +128,56 @@ with t1:
 with t2:
     st.header("📊 Global Audit Ledger")
     
-    # Updated to dynamic path
+    # 1. Use caching with clear capability to ensure fresh data
+    @st.cache_data(show_spinner=False)
+    def load_fresh_logs(path):
+        if os.path.exists(path):
+            return pd.read_csv(path, on_bad_lines='skip')
+        return None
+
     log_path = get_path('data/logs/audit_trail.csv')
-    
+
+    # 2. Add an explicit Refresh button for the "Simple Man"
+    if st.button("🔄 Check for New Detections"):
+        load_fresh_logs.clear() # This forces a fresh read of the CSV
+        st.rerun()
+
     if os.path.exists(log_path):
         try:
-            df = pd.read_csv(log_path, on_bad_lines='skip')
-            st.dataframe(df.iloc[::-1], use_container_width=True, hide_index=True)
+            # Load data using the cache-clearable function
+            df = load_fresh_logs(log_path)
             
-            col1, col2 = st.columns(2)
-            with col1:
-                csv_download = df.to_csv(index=False).encode('utf-8')
-                st.download_button(
-                    label="📥 Download CSV Audit Report",
-                    data=csv_download,
-                    file_name=f"pharma_audit_report_{datetime.now().strftime('%Y%m%d')}.csv",
-                    mime="text/csv"
-                )
-            
-            with col2:
-                if st.button("🗑️ Reset Audit Ledger"):
-                    # Ensure directory exists before writing
-                    os.makedirs(os.path.dirname(log_path), exist_ok=True)
-                    with open(log_path, "w") as f:
-                        f.write("status,msg,timestamp\n")
-                    st.rerun()
+            if df is not None and not df.empty:
+                # Display newest results first
+                st.dataframe(df.iloc[::-1], use_container_width=True, hide_index=True)
+                
+                col1, col2 = st.columns(2)
+                with col1:
+                    csv_download = df.to_csv(index=False).encode('utf-8')
+                    st.download_button(
+                        label="📥 Download CSV Audit Report",
+                        data=csv_download,
+                        file_name=f"pharma_audit_report_{datetime.now().strftime('%Y%m%d')}.csv",
+                        mime="text/csv"
+                    )
+                
+                with col2:
+                    if st.button("🗑️ Reset Audit Ledger"):
+                        os.makedirs(os.path.dirname(log_path), exist_ok=True)
+                        with open(log_path, "w") as f:
+                            # Ensuring we maintain your 4-column structure
+                            f.write("Result,Inspection Notes,Time,AI Certainty\n")
+                        load_fresh_logs.clear()
+                        st.rerun()
+            else:
+                st.info("Log file is currently empty.")
 
         except Exception as e:
             st.error(f"⚠️ Error loading audit logs: {e}")
             st.info(f"Diagnostic Path: {log_path}")
     else:
         st.warning("No audit records found. Detected medicines will appear here automatically.")
-        
+                
 with t3:
     st.header("Medical System Handbook")
     st.markdown("""
