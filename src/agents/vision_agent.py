@@ -7,6 +7,13 @@ from ultralytics import YOLO
 from datetime import datetime
 import pathlib
 
+
+@st.cache_resource
+def load_yolo_model(model_path):
+    """Loads model into RAM once and shares it across all reruns"""
+    return YOLO(model_path, task='detect')
+
+
 class VisionAgent:
     def __init__(self):
         self.model = None
@@ -26,7 +33,7 @@ class VisionAgent:
         for path in model_paths:
             if os.path.exists(path):
                 try:
-                    self.model = YOLO(path)
+                    self.model = load_yolo_model(path)
                     self.model_loaded_from = path
                     print(f"✅ SUCCESS: Loaded model from {path}", file=sys.stderr)
                     break
@@ -36,7 +43,7 @@ class VisionAgent:
         # Fallback logic
         if self.model is None:
             try:
-                self.model = YOLO("yolo11n.pt")
+                self.model = load_yolo_model("yolo11n.pt")
                 self.model_loaded_from = "yolo11n.pt (FALLBACK)"
             except Exception as e:
                 raise RuntimeError("No YOLO model found. Ensure medicine_v1.onnx is in /models/")
