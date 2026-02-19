@@ -116,12 +116,10 @@ class VideoProcessor:
 
     def recv(self, frame: av.VideoFrame) -> av.VideoFrame:
         img = frame.to_ndarray(format="bgr24")
-        # Ensure we call the correct agent method
-        result = self.brain.agent.analyze_frame(img, self.target_id)
-        
-        # We return the annotated frame exactly as before to maintain stability
+        result = self.brain.process_live_stream(img, self.target_id)
         return av.VideoFrame.from_ndarray(result["annotated_frame"], format="bgr24")
-    
+
+
 # 6. MAIN INTERFACE
 t1, t2, t3 = st.tabs(["⚡ Live Inspection", "📊 Historical Audit", "📘 Guide"])
 
