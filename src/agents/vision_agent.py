@@ -14,7 +14,23 @@ def load_yolo_model(model_path):
     """Loads model into RAM once and shares it across all reruns"""
     return YOLO(model_path, task='detect')
 
+def draw_ar_corners(self, img, box, color, thickness=2, length=20):
+    """Draws AR-style corner brackets around a detected object"""
+    x1, y1, x2, y2 = box
+    # Top Left
+    cv2.line(img, (x1, y1), (x1 + length, y1), color, thickness)
+    cv2.line(img, (x1, y1), (x1, y1 + length), color, thickness)
+    # Top Right
+    cv2.line(img, (x2, y1), (x2 - length, y1), color, thickness)
+    cv2.line(img, (x2, y1), (x2, y1 + length), color, thickness)
+    # Bottom Left
+    cv2.line(img, (x1, y2), (x1 + length, y2), color, thickness)
+    cv2.line(img, (x1, y2), (x1, y2 - length), color, thickness)
+    # Bottom Right
+    cv2.line(img, (x2, y2), (x2 - length, y2), color, thickness)
+    cv2.line(img, (x2, y2), (x2 - length, y2), color, thickness)
 
+    
 class VisionAgent:
     def __init__(self):
         self.model = None
@@ -74,6 +90,7 @@ class VisionAgent:
         # WebRTC provides RGB; OpenCV/YOLO expects BGR
         return cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
 
+
     def analyze_frame(self, frame, target_id):
         if frame is None:
             return {"detected_id": "none", "confidence": 0.0, "match_status": "ERROR"}
@@ -86,10 +103,18 @@ class VisionAgent:
         except Exception as e:
             return {"detected_id": "none", "confidence": 0.0, "match_status": "ERROR"}
         
+        # --- NEW: Count objects in current view ---
+        # This counts how many boxes the model found in total
+        num_detected = len(results[0].boxes) if results[0].boxes else 0
+
         detected_id = "none"
         conf = 0.0
         annotated_frame = frame.copy()
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+        # Optional: Visual overlay of the count on the frame
+        cv2.putText(annotated_frame, f"Count: {num_detected}", (20, 50), 
+                    cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
 
         for r in results:
                 if len(r.boxes) > 0:
@@ -136,7 +161,8 @@ class VisionAgent:
             "confidence": conf,
             "annotated_frame": annotated_frame,
             "match_status": "VERIFIED" if detected_id == target_id else "MISMATCH",
-            "model_source": self.model_loaded_from
+            "model_source": self.model_loaded_from,
+            "current_count": num_detected
         }
 
 
