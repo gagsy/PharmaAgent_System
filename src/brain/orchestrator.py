@@ -28,17 +28,21 @@ class Orchestrator:
             return {"status": "ERROR", "msg": f"Failed: {str(e)}"}
 
     def process_live_stream(self, frame, target_id):
-        """NEW: Handles real-time video frames for the Live Scanner"""
+        """UPDATED: Handles real-time video frames and medicine counting"""
         try:
             # 1. Direct frame analysis (returns annotated frame with bounding boxes)
-            # Ensure your updated VisionAgent has the 'analyze_frame' method
+            # We call your existing vision agent here
             vision_data = self.vision.analyze_frame(frame, target_id)
             
             # 2. Extract detected ID for background logic
             detected_id = vision_data.get("detected_id")
             
+            # --- NEW: Extract and Pass the Count ---
+            # We take 'current_count' from vision_data so the VideoProcessor can see it
+            vision_data["current_count"] = vision_data.get("current_count", 0)
+            # ------------------------------------------------
+            
             # 3. Real-time Status Check
-            # Note: We skip heavy audit logging here to maintain high FPS (Frames Per Second)
             if detected_id == target_id:
                 vision_data["status"] = "SAFE"
             else:
@@ -47,5 +51,10 @@ class Orchestrator:
             return vision_data
             
         except Exception as e:
-            # Return original frame if AI fails to prevent screen flickering
-            return {"annotated_frame": frame, "status": "ERROR", "detected_id": "none"}
+            # Return original frame with 0 count if AI fails to prevent screen flickering
+            return {
+                "annotated_frame": frame, 
+                "status": "ERROR", 
+                "detected_id": "none",
+                "current_count": 0
+            } 

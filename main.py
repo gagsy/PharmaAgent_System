@@ -109,16 +109,40 @@ with st.sidebar:
         st.rerun()
 
 # 5. LIVE VIDEO PROCESSOR
+# 5. LIVE VIDEO PROCESSOR
 class VideoProcessor:
     def __init__(self, target_id, brain_engine):
         self.target_id = target_id
         self.brain = brain_engine
+        self.scan_y = 0  # To track the moving AR beam
 
     def recv(self, frame: av.VideoFrame) -> av.VideoFrame:
         img = frame.to_ndarray(format="bgr24")
-        result = self.brain.process_live_stream(img, self.target_id)
-        return av.VideoFrame.from_ndarray(result["annotated_frame"], format="bgr24")
-
+        
+        try:
+            # RESTORATION: Use your working method name
+            result = self.brain.process_live_stream(img, self.target_id)
+            annotated = result["annotated_frame"]
+            
+            # --- ADDING NEW IP FEATURES WITHOUT BREAKING DETECTION ---
+            h, w, _ = annotated.shape
+            
+            # 1. Animated Scanning Beam
+            self.scan_y = (self.scan_y + 15) % h
+            cv2.line(annotated, (0, self.scan_y), (w, self.scan_y), (0, 255, 255), 2)
+            
+            # 2. Live Medicine Count Overlay
+            # Ensure your Orchestrator/Agent adds "current_count" to the result dict
+            count = result.get("current_count", 0)
+            cv2.putText(annotated, f"SCANNING... COUNT: {count}", (20, 50), 
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2)
+            
+            return av.VideoFrame.from_ndarray(annotated, format="bgr24")
+            
+        except Exception as e:
+            # If anything fails, return the raw camera feed so it doesn't go black
+            return av.VideoFrame.from_ndarray(img, format="bgr24")
+        
 
 # 6. MAIN INTERFACE
 t1, t2, t3 = st.tabs(["⚡ Live Inspection", "📊 Historical Audit", "📘 Guide"])
