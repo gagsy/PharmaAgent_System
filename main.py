@@ -108,17 +108,32 @@ with st.sidebar:
         st.session_state["authenticated"] = False
         st.rerun()
 
-# 5. LIVE VIDEO PROCESSOR
 class VideoProcessor:
     def __init__(self, target_id, brain_engine):
         self.target_id = target_id
-        self.brain = brain_engine
+        # self.brain is the Orchestrator instance
+        self.brain = brain_engine 
 
     def recv(self, frame: av.VideoFrame) -> av.VideoFrame:
+        # Convert the live camera frame to a format AI understands
         img = frame.to_ndarray(format="bgr24")
-        result = self.brain.process_live_stream(img, self.target_id)
-        return av.VideoFrame.from_ndarray(result["annotated_frame"], format="bgr24")
-
+        
+        try:
+            # 1. Run the stable detection logic from your VisionAgent
+            result = self.brain.agent.analyze_frame(img, self.target_id)
+            
+            # 2. Extract the annotated frame (the one with the Green/Red boxes)
+            annotated = result.get("annotated_frame", img)
+            
+            # 3. Return the processed frame back to the Streamlit UI
+            return av.VideoFrame.from_ndarray(annotated, format="bgr24")
+            
+        except Exception as e:
+            # SAFETY FALLBACK: If AI fails, still show the real camera feed
+            # so the user never sees a black screen.
+            cv2.putText(img, "AI Initialization...", (20, 50), 
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 165, 255), 2)
+            return av.VideoFrame.from_ndarray(img, format="bgr24")
 
 # 6. MAIN INTERFACE
 t1, t2, t3 = st.tabs(["⚡ Live Inspection", "📊 Historical Audit", "📘 Guide"])
