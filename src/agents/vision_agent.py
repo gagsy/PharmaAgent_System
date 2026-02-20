@@ -41,10 +41,10 @@ class VisionAgent:
         
         # Priority paths for Docker, Local (XAMPP), and Streamlit Cloud
         model_paths = [
-            "/app/models/best.onnx", # Docker Prod
-            r"C:\xampp\htdocs\PharmaAgent_System\runs\detect\runs\pharma\exp_augmented_final\weights\best.onnx", # Local Windows
-            os.path.join(self.project_root, "models/best.onnx"), # Git/Cloud
-            "models/best.onnx"
+            "/app/models/bestperfect.onnx", # Docker Prod
+            r"C:\xampp\htdocs\PharmaAgent_System\runs\detect\runs\pharma\exp_augmented_final5\weights\best.onnx", # Local Windows
+            os.path.join(self.project_root, "models/bestperfect.onnx"), # Git/Cloud
+            "models/bestperfect.onnx"
         ]
         
         for path in model_paths:
