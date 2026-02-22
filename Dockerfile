@@ -30,7 +30,7 @@ RUN pip install --no-cache-dir --upgrade pip && \
 # 6. Prepare Model Directory
 # This ensures the folder structure matches your code's path logic
 RUN mkdir -p /app/models
-COPY ./runs/detect/runs/pharma/exp_augmented_final/weights/best.onnx /app/models/medicine_v1.onnx
+COPY ./runs/detect/runs/pharma/exp_augmented_final3/weights/best.onnx /app/models/besttwo.onnx
 
 # 7. Copy remaining application files
 COPY . .
