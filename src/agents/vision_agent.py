@@ -54,10 +54,10 @@ class VisionAgent:
 
         # Priority model paths
         model_paths = [
-            "/app/models/bestperfect.onnx",
-            r"C:\xampp\htdocs\PharmaAgent_System\runs\detect\runs\pharma\exp_augmented_final5\weights\best.onnx",
-            os.path.join(self.project_root, "models/bestperfect.onnx"),
-            "models/bestperfect.onnx"
+            "/app/models/besttwo.onnx",
+            r"C:\xampp\htdocs\PharmaAgent_System\runs\detect\runs\pharma\exp_augmented_final3\weights\best.onnx",
+            os.path.join(self.project_root, "models/besttwo.onnx"),
+            "models/besttwo.onnx"
         ]
         
         for path in model_paths:
