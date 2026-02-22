@@ -108,70 +108,47 @@ with st.sidebar:
         st.session_state["authenticated"] = False
         st.rerun()
 
-# 5. LIVE VIDEO PROCESSOR
-# 5. LIVE VIDEO PROCESSOR
+# main.py update
+
+# Inside your Sidebar or Selection logic:
+selected_id = st.sidebar.selectbox("Select Drug:", options=["drug_crocin_advance", "drug_paracetamol_650"], key="active_med")
+
 class VideoProcessor:
-    def __init__(self, target_id, brain_engine):
-        self.target_id = target_id
-        self.brain = brain_engine
-        self.scan_y = 0  # To track the moving AR beam
+    def __init__(self, brain):
+        self.brain = brain # Orchestrator
 
-    def recv(self, frame: av.VideoFrame) -> av.VideoFrame:
-        img = frame.to_ndarray(format="bgr24")
+    def recv(self, frame):
+        img = frame.to_ndarray(format="rgb24") # Standard WebRTC input
         
-        try:
-            # RESTORATION: Use your working method name
-            result = self.brain.process_live_stream(img, self.target_id)
-            annotated = result["annotated_frame"]
-            
-            # --- ADDING NEW IP FEATURES WITHOUT BREAKING DETECTION ---
-            h, w, _ = annotated.shape
-            
-            # 1. Animated Scanning Beam
-            self.scan_y = (self.scan_y + 15) % h
-            cv2.line(annotated, (0, self.scan_y), (w, self.scan_y), (0, 255, 255), 2)
-            
-            # 2. Live Medicine Count Overlay
-            # Ensure your Orchestrator/Agent adds "current_count" to the result dict
-            count = result.get("current_count", 0)
-            cv2.putText(annotated, f"SCANNING... COUNT: {count}", (20, 50), 
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2)
-            
-            return av.VideoFrame.from_ndarray(annotated, format="bgr24")
-            
-        except Exception as e:
-            # If anything fails, return the raw camera feed so it doesn't go black
-            return av.VideoFrame.from_ndarray(img, format="bgr24")
+        # CRITICAL: Pull current task from session state every frame
+        target = st.session_state.get("active_med", "drug_crocin_advance")
         
+        # Process through orchestrator
+        result = self.brain.process_live_stream(img, target)
+        
+        # Get annotated frame (already converted to RGB in VisionAgent)
+        output_img = result.get("annotated_frame", img)
+        
+        return av.VideoFrame.from_ndarray(output_img, format="rgb24")
 
-# 6. MAIN INTERFACE
+# UI Implementation
 t1, t2, t3 = st.tabs(["⚡ Live Inspection", "📊 Historical Audit", "📘 Guide"])
 
 with t1:
-    st.header(f"Inspecting: {selected_name}")
+    st.header(f"Inspecting: {st.session_state.active_med}")
     
-    ctx = webrtc_streamer(
+    webrtc_streamer(
         key="pharma-scanner",
         mode=WebRtcMode.SENDRECV,
-        video_processor_factory=lambda: VideoProcessor(target_id, brain),
+        # We pass the 'brain' (orchestrator) but NOT the target_id directly here
+        video_processor_factory=lambda: VideoProcessor(brain),
         rtc_configuration={
-            "iceServers": [
-                {"urls": ["stun:stun.l.google.com:19302"]},
-                {
-                    "urls": ["turn:staticauth.openrelay.metered.ca:80"],
-                    "username": "openrelayproject",
-                    "credential": "openrelayprojectsecret"
-                }
-            ]
+            "iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]
         },
         media_stream_constraints={"video": True, "audio": False},
         async_processing=True,
     )
 
-    if ctx and ctx.state.playing:
-        st.success("AI Active. Place medicine strip in view.")
-    else:
-        st.warning("Click 'START' to activate the Real-Time Scanner.")
 with t2:
     st.header("📊 Global Audit Ledger")
     
