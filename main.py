@@ -113,22 +113,23 @@ with st.sidebar:
 # Inside your Sidebar or Selection logic:
 selected_id = st.sidebar.selectbox("Select Drug:", options=["drug_crocin_advance", "drug_paracetamol_650"], key="active_med")
 
+# In main.py, ensure your VideoProcessor looks like this:
+
 class VideoProcessor:
-    def __init__(self, brain):
-        self.brain = brain # Orchestrator
+    def __init__(self, orchestrator):
+        self.orchestrator = orchestrator
 
     def recv(self, frame):
-        img = frame.to_ndarray(format="rgb24") # Standard WebRTC input
+        img = frame.to_ndarray(format="rgb24")
         
-        # CRITICAL: Pull current task from session state every frame
-        target = st.session_state.get("active_med", "drug_crocin_advance")
+        # DYNAMIC UPDATE: Get the dropdown selection from the UI in real-time
+        # This matches the 'key' used in your st.selectbox
+        current_target = st.session_state.get("active_med_task", "drug_crocin_advance")
         
-        # Process through orchestrator
-        result = self.brain.process_live_stream(img, target)
+        # Pass to orchestrator -> vision_agent
+        result = self.orchestrator.process_live_stream(img, current_target)
         
-        # Get annotated frame (already converted to RGB in VisionAgent)
         output_img = result.get("annotated_frame", img)
-        
         return av.VideoFrame.from_ndarray(output_img, format="rgb24")
 
 # UI Implementation
